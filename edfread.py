@@ -21,6 +21,11 @@ import argparse
 import datetime
 from datetime import timedelta
 import time
+import math
+import random
+
+SampFreq = 256
+ChannelNum = 22
 
 def get_parser():
     parser = argparse.ArgumentParser(description='Process edf file save to npy')
@@ -30,8 +35,7 @@ def get_parser():
 
 
 
-SampFreq = 256
-ChannelNum = 22
+
 
 def read_onset_edf(edf_dir, summary_path, save_dir):
     book = xlrd.open_workbook(xlsPath)
@@ -69,14 +73,15 @@ def read_onset_edf(edf_dir, summary_path, save_dir):
 def save_to_numpy(edf_file_data, edf_file_name, save_dir):
    pass 
 
-def read_edf(file_path, start_time, end_time):
+def read_edf(file_path, start_time=None, end_time=None):
     f = pyedflib.EdfReader(file_path)
     channel_list = channel_handle(os.path.basename(file_path))
     data = []
     for i in channel_list:
         per_channel = f.readSignal(i)
-        per_channel = per_channel[
-                start_time*SampFreq : end_time*SampFreq]
+        if not start_time is None:
+            per_channel = per_channel[
+                    start_time*SampFreq : end_time*SampFreq]
         data.append(per_channel)
     return data
 
@@ -120,10 +125,9 @@ def read_summary(summary_path):
             info = {}
             info['filename'] = content[i].split(': ')[1][:-1]
             info['num_seizure'] = int(content[i+3].split(': ')[1])
-            print info
             if info['num_seizure'] > 0:
-                seizure_start_time = int(content[i+4].split(': ')[1][:-9])
-                seizure_end_time = int(content[i+5].split(': ')[1][:-9])
+                seizure_start_time = int(content[i+4].split(': ')[1][:-8])
+                seizure_end_time = int(content[i+5].split(': ')[1][:-8])
                 info['seizure'] = []
                 info['seizure'].append((seizure_start_time, seizure_end_time))
                 i += 6
@@ -141,6 +145,7 @@ def edf_read_from_folder(edf_dir, save_dir):
     edf_file_list = []
     summary_file_path = ''
     # get all edf file path in folder
+    dir_name = os.path.basename(edf_dir)
     for file in os.listdir(edf_dir):
             if file.endswith(".edf"):
                 edf_file_list.append(os.path.join(edf_dir, file))
@@ -151,29 +156,92 @@ def edf_read_from_folder(edf_dir, save_dir):
     print('summary path: {}'.format(summary_file_path))
     # read summary
     file_info = read_summary(summary_file_path)
+    # file info is a list of dict containing each edf file's information
+    # dict format: {'filename':, 'num_seizure':, 'seizure':[(st1, end1),(st2, end2)]}
 
     # read edf file one by one
-    seizure_data = []
-    no_seizure_data = []
+    seizure_raw_data = []
+    no_seizure_raw_data = []
+    # first save seizure data
+    seizure_total_time = 0
     for file_path in edf_file_list:
         basename = os.path.basename(file_path)
         info = (item for item in file_info if item["filename"] == basename).next()
-        if info['num_seizure'] == 0:
-            print 'no seizure', file_path
-        else:
+        if info['num_seizure'] > 0:
+            # extrach seizure time in file
+            print('reading seizure data from {}'.format(file_path))
             for each in info['seizure']:
+                print('reading seizure data start {}, end {}'.format(each[0], each[1]))
+                seizure_total_time += each[1] - each[0]
                 edf_data = read_edf(
                         file_path, 
                         each[0], 
                         each[1]) 
-                
+                seizure_raw_data.append(edf_data)
+
+        else:
+            # extract data from 30 - 31 minutes in file
+            edf_data = read_edf(file_path, 30*60, 31*60)
+            print('reading no seizure data from {}'.format(file_path))
+            print('edf data shape: {}'.format(np.shape(edf_data)))
+            no_seizure_raw_data.append(edf_data)
+            
+            
+    print('seizure raw data shape {}'.format(np.shape(seizure_raw_data)))
+    # extract enough none-seizure data according to seizure total time
+    print('total seizure time: {}'.format(seizure_total_time))
+    seizure_data = []
+    no_seizure_data = []
+    # modify seizure data, 6 sec as a sample
+
+    np.save('seizure_raw_data.npy', seizure_raw_data)
+    seizure_data = slice_data(seizure_raw_data, 6*SampFreq)
+    no_seizure_data = slice_data(no_seizure_raw_data, 6*SampFreq)
+
+    # get equal number of no seizure data
+    if np.shape(seizure_data)[0] < np.shape(no_seizure_data)[0]:
+        no_seizure_data = random.sample(no_seizure_data, np.shape(seizure_data)[0])
+    print('seizure data shape: {}'.format(np.shape(seizure_data)))
+    print('no seizure data shape: {}'.format(np.shape(no_seizure_data)))
+    label = [0]*np.shape(seizure_data)[0] + [1]*np.shape(seizure_data)[0]
+    # data format (sample, channel, feature) feature is 6s data with 256 SampFreq
+    if not os.path.isdir(save_dir):
+        os.mkdir(save_dir)
+    data = no_seizure_data + seizure_data
+    np.save(os.path.join(save_dir, '{}_data.npy'.format(dir_name)), data)
+    np.save(os.path.join(save_dir, '{}_label.npy'.format(dir_name)), label)
+    
+
+def slice_data(input_data, slice_size):
+    out_data = []
+    def slice_regard_channel(data, start, end):
+        out = []
+        for channel in data:
+            chunks = channel[start:end]
+            out.append(chunks)
+        return out
+
+    for item in input_data:
+        raw_size = np.shape(item)[1]
+        slice_num = int(math.floor(raw_size/slice_size))
+        for i in xrange(0, slice_num):
+            out_data.append(slice_regard_channel(item, i*slice_size, (i+1)*slice_size))
+                    
+    print('out_size {}'.format(np.shape(out_data)))
+    return out_data
+
+
+def test():
+    data = np.load('seizure_raw_data.npy')
+    print np.shape(data[0][0])
+    print('input size: {}'.format(np.shape(data)))
+    x_data = slice_data(data, 6*SampFreq)
 
 def main():
     args = get_parser()
     edfpath = args.folder
     save_dir = args.save_dir
     edf_read_from_folder(edfpath, save_dir)
-    
     
     
 if __name__ == '__main__':
