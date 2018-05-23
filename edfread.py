@@ -1,11 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Fri May  4 18:59:26 2018
-
-@author: 大茄茄
-
-Edit  
-"""
 
 #对原始的发作时期的患者的.edf格式文件进行读取，转换成.csv格式文件
 #并对一些多余的信道进行处理
@@ -33,45 +26,6 @@ def get_parser():
     parser.add_argument('-s', '--save_dir', help='save dir')
     return parser.parse_args()
 
-
-
-
-
-def read_onset_edf(edf_dir, summary_path, save_dir):
-    book = xlrd.open_workbook(xlsPath)
-    sh = book.sheet_by_index(0)
-    rows = sh.nrows
-    count = 1
-    while count<rows:
-        onset_times = sh.cell_value(rowx=count, colx=6)
-        if onset_times:
-            onset_times = int(onset_times)
-            for i in range(onset_times):
-                filename = sh.cell_value(rowx=count, colx=3)
-                parentFile = filename.split('_')[0]
-                filepath = os.path.join(edfpath, parentFile, filename) + '.edf'
-                startTime = int(sh.cell_value(rowx=count, colx=4))
-                endTime = int(sh.cell_value(rowx=count, colx=5))
-                print('{} : {} '.format(filename, str(endTime-startTime)))
-                edfFile = read_edf(filepath, parentFile, filename, startTime, endTime) 
-                save_to_numpy(edfFile, filepath, './data')
-                onsetData = pd.DataFrame(edfFile)
-                onsetData.to_csv(savepath + '\\{}_{}_onset.csv'.format(filename, str(i+1)))
-                count += 1
-        else:
-            filename = sh.cell_value(rowx=count, colx=3)
-            parentFile = filename.split('_')[0]
-            filepath = os.path.join(edfpath, parentFile, filename) + '.edf'
-            startTime = int(sh.cell_value(rowx=count, colx=4))
-            endTime = int(sh.cell_value(rowx=count, colx=5))
-            print('{} : {} '.format(filename, str(endTime-startTime)))
-            edfFile = read_edf(filepath, parentFile, filename, startTime, endTime) 
-            onsetData = pd.DataFrame(edfFile)
-            onsetData.to_csv(savepath + '\\{}_onset.csv'.format(filename))
-            count += 1  
-            
-def save_to_numpy(edf_file_data, edf_file_name, save_dir):
-   pass 
 
 def read_edf(file_path, start_time=None, end_time=None):
     f = pyedflib.EdfReader(file_path)
