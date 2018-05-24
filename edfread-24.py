@@ -79,20 +79,18 @@ def read_summary(summary_path):
         if 'File Name' in content[i]:
             info = {}
             info['filename'] = content[i].split(': ')[1][:-1]
-            info['num_seizure'] = int(content[i+3].split(': ')[1])
+            info['num_seizure'] = int(content[i+1].split(': ')[1])
             if info['num_seizure'] > 0:
                 info['seizure'] = []
                 j = 0
                 while j < info['num_seizure']:
-                    seizure_start_time = int(content[i+4+j*2].split(': ')[1][:-8])
-                    seizure_end_time = int(content[i+5+j*2].split(': ')[1][:-8])
+                    seizure_start_time = int(content[i+2+j*2].split(': ')[1][:-8])
+                    seizure_end_time = int(content[i+3+j*2].split(': ')[1][:-8])
                     info['seizure'].append((seizure_start_time, seizure_end_time))
                     j += 1
-
-
-                i += 6
-            else:
                 i += 4
+            else:
+                i += 2
             file_info.append(info)
             
         else:
@@ -126,10 +124,12 @@ def edf_read_from_folder(edf_dir, save_dir):
     seizure_total_time = 0
     for file_path in edf_file_list:
         basename = os.path.basename(file_path)
-        info = (item for item in file_info if item["filename"] == basename).next()
-        if info is None:
+        info = [item for item in file_info if item["filename"] == basename]
+        if len(info) == 0:
             info = {}
             info['num_seizure'] = 0
+        else:
+            info = info[0]
         if info['num_seizure'] > 0:
             # extrach seizure time in file
             print('reading seizure data from {}'.format(file_path))
@@ -143,8 +143,8 @@ def edf_read_from_folder(edf_dir, save_dir):
                 seizure_raw_data.append(edf_data)
 
         else:
-            # extract data from 30 - 35  minutes in file
-            edf_data = read_edf(file_path, 30*60, 35*60)
+            # extract data from 30 - 31 minutes in file
+            edf_data = read_edf(file_path, 30*60, 31*60)
             print('reading no seizure data from {}'.format(file_path))
             print('edf data shape: {}'.format(np.shape(edf_data)))
             no_seizure_raw_data.append(edf_data)
@@ -160,9 +160,10 @@ def edf_read_from_folder(edf_dir, save_dir):
     np.save('seizure_raw_data.npy', seizure_raw_data)
     seizure_data = slice_data(seizure_raw_data, 6*SampFreq)
     no_seizure_data = slice_data(no_seizure_raw_data, 6*SampFreq)
+
+    # get equal number of no seizure data
     if np.shape(seizure_data)[0] < np.shape(no_seizure_data)[0]:
         no_seizure_data = random.sample(no_seizure_data, np.shape(seizure_data)[0])
-
     print('seizure data shape: {}'.format(np.shape(seizure_data)))
     print('no seizure data shape: {}'.format(np.shape(no_seizure_data)))
     label = [0]*np.shape(seizure_data)[0] + [1]*np.shape(seizure_data)[0]
