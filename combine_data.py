@@ -18,6 +18,7 @@ def combine_data(data_dir):
         label_file = get_label_file_path(data_file)
         data = np.load(data_file)
         label = np.load(label_file)
+        print data_file, data.shape, label.shape
         data_combine.extend(data)
         label_combine.extend(label)
     print np.shape(data_combine), np.shape(label_combine)
