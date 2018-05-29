@@ -1,14 +1,16 @@
 import pickle as pk
 import numpy as np
+import os
 import keras
 from keras.layers import Dense, LSTM, GRU, Bidirectional, Input, Conv2D, MaxPooling2D, Flatten, TimeDistributed, Reshape
 from keras.layers import ELU, BatchNormalization
 from keras.models import Model
 from keras import optimizers
-
+from keras.callbacks import ModelCheckpoint, CSVLogger
 from keras.utils import to_categorical
 from keras.models import Sequential
-from keras.utils import to_categorical
+
+from sklearn.utils import shuffle
 
 from sklearn.svm import SVC
 from sklearn.model_selection import StratifiedKFold
@@ -26,13 +28,6 @@ def load_data():
     return d_data, d_label
 
 
-def make_cnn(input_shape, out_put):
-    # First, define the vision modules
-    digit_input = Input(shape=input_shape)
-    x = Conv2D(64, (3, 3))(digit_input)
-    x = Conv2D(64, (3, 3))(x)
-    x = MaxPooling2D((2, 2))(x)
-    return digit_input, x 
 
 def make_cnn_model(input_shape, num_classes):
     model = Sequential()
@@ -41,11 +36,11 @@ def make_cnn_model(input_shape, num_classes):
     model.add(BatchNormalization(axis=1, momentum=0.01))
     model.add(ELU())
 
-    model.add(Conv2D(64, (5, 10), data_format='channels_first'))
-    model.add(BatchNormalization(axis=1, momentum=0.01))
-    model.add(ELU())
-    model.add(MaxPooling2D((1, 2), data_format='channels_first'))
-
+#    model.add(Conv2D(64, (5, 10), data_format='channels_first'))
+#    model.add(BatchNormalization(axis=1, momentum=0.01))
+#    model.add(ELU())
+#    model.add(MaxPooling2D((1, 2), data_format='channels_first'))
+#
     model.add(Conv2D(64, (5, 10), data_format='channels_first'))
     model.add(BatchNormalization(axis=1, momentum=0.01))
     model.add(ELU())
@@ -107,11 +102,16 @@ def make_model(time_step, input_shape, num_classes):
 #
 #    model.summary()
 #    return model
-
+def dataset_preprocess(data, label):
+   # data shuffle
+   s_data, s_label = shuffle(data, label, random_state=2018)
+   return s_data, s_label
 
 
 def main():
     x, y = load_data()
+    x, y = dataset_preprocess(x, y)
+
     print(np.shape(x))
     print(np.shape(y))
     data_shape = np.shape(x[0])
@@ -123,15 +123,21 @@ def main():
 #    model = make_model(6, (3, 22, 256), 2)
     model = make_cnn_model(data_shape, 2)
     print model.summary()
+
+    checkpoint = ModelCheckpoint(
+            './model.{epoch:04d}-{val_loss:.2f}.hdf5')
+
+    logger = CSVLogger(os.path.join(".", "training.log"))
+
     model.compile(
             loss='categorical_crossentropy', 
             optimizer = optimizers.SGD(lr=0.01, momentum=0.9, clipnorm=1., clipvalue=0.5),
-            metrics=['accuracy']) 
+            metrics=['accuracy'])
     model.fit(
             x, y, batch_size=32, 
-            epochs=10, verbose=1, 
+            epochs=5, verbose=1, 
             validation_split=0.1, shuffle=True, 
-            initial_epoch=0)
+            initial_epoch=0, callbacks=[checkpoint, logger])
 
 
 if __name__ == '__main__':
