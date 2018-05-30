@@ -1,5 +1,6 @@
 import numpy as np
 import os
+from shutil import copyfile
 
 def get_label_file_path(data_file_path):
     basename = os.path.basename(data_file_path)
@@ -51,22 +52,32 @@ def generate_LOPO_data(data_dir, out_dir):
 
     for patient in file_list:
         # genrating LOPO data for patient
-        print 'generating LOPO data for {}'.format(patient)
+        basename = os.path.basename(patient)[:5]
+        data_dir = os.path.join(out_dir, basename)
+        if not os.path.isdir(data_dir):
+            os.mkdir(data_dir)
+        print 'generating LOPO data for {}'.format(basename)
         LOPO_list = [i for i in file_list if i != patient]
-        data_name = '{}-data-LOPO.npy'.format(
-                os.path.basename(patient)[:-9])
-        label_name = '{}-label-LOPO.npy'.format(
-                os.path.basename(patient)[:-9])
+        data_name = '{}-data-train.npy'.format(basename)
+        label_name = '{}-label-train.npy'.format(basename)
         data, label = combine(LOPO_list)
         np.save(
-                os.path.join(out_dir, data_name), data)
+                os.path.join(data_dir, data_name), data)
         np.save(
-                os.path.join(out_dir, label_name), label)
+                os.path.join(data_dir, label_name), label)
+        # generate validation set
+        data_name = '{}-data-val.npy'.format(basename)
+        label_name = '{}-label-val.npy'.format(basename)
+        copyfile(patient, os.path.join(data_dir, data_name))
+        copyfile(
+                get_label_file_path(patient), 
+                os.path.join(data_dir, label_name))
+
 
 
 def main():
     #combine_data('./data')
-    generate_LOPO_data('./data', './LOPO-data')
+    generate_LOPO_data('./image_data', './LOPO')
 
 if __name__ == '__main__':
     main()
