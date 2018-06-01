@@ -61,23 +61,15 @@ def make_image_string(data, time_step):
         print 'process {}-th image', count
         count += 1
         for t_win in sample:
-            R_data = get_band_filter(t_win, 0.01, 7)
-            G_data = get_band_filter(t_win, 8, 13)
-            B_data = get_band_filter(t_win, 13, 30)
-            image = []
-            image.append(R_data)
-            image.append(G_data)
-            image.append(B_data)
+            image = make_single_image(t_win) 
             image_sample.append(image)
         image_data.append(image_sample)
     print(np.shape(image_data))
-    np.save('image_data_ch01.npy', image_data) 
+    return image_data
 
 
 def main():
-   data = np.load('./data/chb01_data.npy')
-   print data.shape
-   make_image(data, 6)
+    pass
 
 if __name__ == '__main__':
     main()
