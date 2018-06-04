@@ -234,6 +234,9 @@ def slide_data(input_data, window_size):
         return out
 
     for item in input_data:
+        print('raw_size : {}'.format(np.shape(item)))
+        if len(np.shape(item)) == 1:
+            continue
         raw_size = np.shape(item)[1]
         slide_window_num = (raw_size - window_size*SampFreq)/SampFreq
         slide_window_num = int(math.floor(slide_window_num))
