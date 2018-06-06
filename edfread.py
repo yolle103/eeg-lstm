@@ -154,15 +154,15 @@ def read_raw_data(edf_dir):
     print('total seizure time: {}'.format(seizure_total_time))
     return seizure_raw_data, no_seizure_raw_data
 
-
-def edf_read_3s_slide_window(edf_dir, save_dir):
-
+def edf_read_save(edf_dir, save_dir, read_option, win_size):
     dir_name = os.path.basename(edf_dir)
     seizure_raw_data, no_seizure_raw_data = read_raw_data(edf_dir)
-    # slide 3s window on seizure_data
-    seizure_data = slide_data(seizure_raw_data, 3)
-    no_seizure_data = slide_data(no_seizure_raw_data, 3)
-    
+    options = {'slice':slice_data, 'slide':slide_data}
+    seizure_data = options[read_option](
+            seizure_raw_data, win_size)
+    no_seizure_data = options[read_option](
+            no_seizure_raw_data, win_size)
+
     print('seizure data shape: {}'.format(np.shape(seizure_data)))
     print('no seizure data shape: {}'.format(np.shape(no_seizure_data)))
     if np.shape(seizure_data)[0] < np.shape(no_seizure_data)[0]:
@@ -175,35 +175,12 @@ def edf_read_3s_slide_window(edf_dir, save_dir):
     if not os.path.isdir(save_dir):
         os.mkdir(save_dir)
     data = no_seizure_data + seizure_data
-    np.save(os.path.join(save_dir, '{}_data.npy'.format(dir_name)), data)
-    np.save(os.path.join(save_dir, '{}_label.npy'.format(dir_name)), label)
+    np.save(os.path.join(
+        save_dir, '{}_data.npy'.format(dir_name)), data)
+    np.save(os.path.join(
+        save_dir, '{}_label.npy'.format(dir_name)), label)
+
     
-
-
-def edf_read_6s_slice(edf_dir, save_dir):
-    dir_name = os.path.basename(edf_dir)
-    seizure_raw_data, no_seizure_raw_data = read_raw_data(edf_dir)
-    seizure_data = []
-    no_seizure_data = []
-    # modify seizure data, 6 sec as a sample
-
-    np.save('seizure_raw_data.npy', seizure_raw_data)
-    seizure_data = slice_data(seizure_raw_data, 6*SampFreq)
-    no_seizure_data = slice_data(no_seizure_raw_data, 6*SampFreq)
-    if np.shape(seizure_data)[0] < np.shape(no_seizure_data)[0]:
-        no_seizure_data = random.sample(no_seizure_data, np.shape(seizure_data)[0])
-
-    print('seizure data shape: {}'.format(np.shape(seizure_data)))
-    print('no seizure data shape: {}'.format(np.shape(no_seizure_data)))
-    label = [0]*np.shape(seizure_data)[0] + [1]*np.shape(seizure_data)[0]
-    # data format (sample, channel, feature) feature is 6s data with 256 SampFreq
-    if not os.path.isdir(save_dir):
-        os.mkdir(save_dir)
-    data = no_seizure_data + seizure_data
-    np.save(os.path.join(save_dir, '{}_data.npy'.format(dir_name)), data)
-    np.save(os.path.join(save_dir, '{}_label.npy'.format(dir_name)), label)
-    
-
 def slice_data(input_data, slice_size):
     out_data = []
     def slice_regard_channel(data, start, end):
@@ -259,7 +236,8 @@ def main():
     args = get_parser()
     edfpath = args.folder
     save_dir = args.save_dir
-    edf_read_3s_slide_window(edfpath, save_dir)
+    edf_read_save(edfpath, save_dir, 'slide', 3)
+
     
     
 if __name__ == '__main__':
