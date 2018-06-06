@@ -227,6 +227,36 @@ def slide_data(input_data, window_size):
     print('out_size {}'.format(np.shape(out_data)))
     return out_data
 
+def save_fine_tune_data(edf_dir, save_dir, read_option, win_size):
+    dir_name = os.path.basename(edf_dir)
+    seizure_raw_data, no_seizure_raw_data = read_raw_data(edf_dir)
+    options = {'slice':slice_data, 'slide':slide_data}
+    no_seizure_data = options[read_option](
+            no_seizure_raw_data, win_size)
+
+    if not os.path.isdir(save_dir):
+        os.mkdir(save_dir)
+
+    # data format (sample, channel, feature) feature is 6s data with 256 SampFreq
+    seizure_count = 0
+    seizure_size = 0
+    for each in seizure_raw_data:
+        # slide/slice each seizure_raw_data
+
+        seizure_data = options[read_option]([each], win_size)
+        seizure_size += len(seizure_data)
+        print np.shape(seizure_data)
+        np.save(os.path.join(
+            save_dir, '{}_seizure_data.npy'.format(seizure_count)), seizure_data)
+        seizure_count += 1
+
+    if seizure_size < np.shape(no_seizure_data)[0]:
+        no_seizure_data = random.sample(no_seizure_data, seizure_size)
+    print np.shape(no_seizure_data)
+    np.save(os.path.join(
+        save_dir, 'normal_data.npy'), no_seizure_data)
+
+
 def test():
     data = np.load('seizure_raw_data.npy')
     print('input size: {}'.format(np.shape(data)))
@@ -236,7 +266,7 @@ def main():
     args = get_parser()
     edfpath = args.folder
     save_dir = args.save_dir
-    edf_read_save(edfpath, save_dir, 'slide', 3)
+    save_fine_tune_data(edfpath, save_dir, 'slide', 3)
 
     
     

@@ -302,15 +302,15 @@ def slice_data(input_data, slice_size):
     print('out_size {}'.format(np.shape(out_data)))
     return out_data
 
-
-def edf_read_3s_slide_window(edf_dir, save_dir):
-
+def edf_read_save(edf_dir, save_dir, read_option, win_size):
     dir_name = os.path.basename(edf_dir)
     seizure_raw_data, no_seizure_raw_data = read_raw_data(edf_dir)
-    # slide 3s window on seizure_data
-    seizure_data = edfread.slide_data(seizure_raw_data, 3)
-    no_seizure_data = edfread.slide_data(no_seizure_raw_data, 3)
-    
+    options = {'slice':slice_data, 'slide':slide_data}
+    seizure_data = options[read_option](
+            seizure_raw_data, win_size)
+    no_seizure_data = options[read_option](
+            no_seizure_raw_data, win_size)
+
     print('seizure data shape: {}'.format(np.shape(seizure_data)))
     print('no seizure data shape: {}'.format(np.shape(no_seizure_data)))
     if np.shape(seizure_data)[0] < np.shape(no_seizure_data)[0]:
@@ -323,9 +323,41 @@ def edf_read_3s_slide_window(edf_dir, save_dir):
     if not os.path.isdir(save_dir):
         os.mkdir(save_dir)
     data = no_seizure_data + seizure_data
-    np.save(os.path.join(save_dir, '{}_data.npy'.format(dir_name)), data)
-    np.save(os.path.join(save_dir, '{}_label.npy'.format(dir_name)), label)
-    
+    np.save(os.path.join(
+        save_dir, '{}_data.npy'.format(dir_name)), data)
+    np.save(os.path.join(
+        save_dir, '{}_label.npy'.format(dir_name)), label)
+
+
+
+def save_fine_tune_data(edf_dir, save_dir, read_option, win_size):
+    dir_name = os.path.basename(edf_dir)
+    seizure_raw_data, no_seizure_raw_data = read_raw_data(edf_dir)
+    options = {'slice':slice_data, 'slide':slide_data}
+    no_seizure_data = options[read_option](
+            no_seizure_raw_data, win_size)
+
+    if not os.path.isdir(save_dir):
+        os.mkdir(save_dir)
+
+    # data format (sample, channel, feature) feature is 6s data with 256 SampFreq
+    seizure_count = 0
+    seizure_size = 0
+    for each in seizure_raw_data:
+        # slide/slice each seizure_raw_data
+
+        seizure_data = options[read_option]([each], win_size)
+        seizure_size += len(seizure_data)
+        print np.shape(seizure_data)
+        np.save(os.path.join(
+            save_dir, '{}_seizure_data.npy'.format(seizure_count)), seizure_data)
+        seizure_count += 1
+
+    if seizure_size < np.shape(no_seizure_data)[0]:
+        no_seizure_data = random.sample(no_seizure_data, seizure_size)
+    print np.shape(no_seizure_data)
+    np.save(os.path.join(
+        save_dir, 'normal_data.npy'), no_seizure_data)
 
 def test():
     data = np.load('seizure_raw_data.npy')
