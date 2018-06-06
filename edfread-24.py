@@ -337,6 +337,7 @@ def save_fine_tune_data(edf_dir, save_dir, read_option, win_size):
     no_seizure_data = options[read_option](
             no_seizure_raw_data, win_size)
 
+    save_dir = os.path.join(save_dir, dir_name)
     if not os.path.isdir(save_dir):
         os.mkdir(save_dir)
 
