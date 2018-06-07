@@ -139,14 +139,18 @@ def read_raw_data(edf_dir):
                         file_path, 
                         each[0], 
                         each[1]) 
-                seizure_raw_data.append(edf_data)
+                if len(np.shape(edf_data)) == 2:
+                    print('edf data shape: {}'.format(np.shape(edf_data)))
+                    seizure_raw_data.append(edf_data)
 
         else:
             # extract data from 30 - 35  minutes in file
             edf_data = read_edf(file_path, 30*60, 35*60)
             print('reading no seizure data from {}'.format(file_path))
-            print('edf data shape: {}'.format(np.shape(edf_data)))
-            no_seizure_raw_data.append(edf_data)
+
+            if len(np.shape(edf_data)) == 2:
+                print('edf data shape: {}'.format(np.shape(edf_data)))
+                no_seizure_raw_data.append(edf_data)
             
             
     print('seizure raw data shape {}'.format(np.shape(seizure_raw_data)))
@@ -157,6 +161,7 @@ def read_raw_data(edf_dir):
 def edf_read_save(edf_dir, save_dir, read_option, win_size):
     dir_name = os.path.basename(edf_dir)
     seizure_raw_data, no_seizure_raw_data = read_raw_data(edf_dir)
+    print('read raw data finish')
     options = {'slice':slice_data, 'slide':slide_data}
     seizure_data = options[read_option](
             seizure_raw_data, win_size)
@@ -183,6 +188,7 @@ def edf_read_save(edf_dir, save_dir, read_option, win_size):
     
 def slice_data(input_data, slice_size):
     out_data = []
+    print('sliceing!')
     def slice_regard_channel(data, start, end):
         out = []
         for channel in data:
@@ -191,10 +197,12 @@ def slice_data(input_data, slice_size):
         return out
 
     for item in input_data:
+        print(np.shape(item))
         raw_size = np.shape(item)[1]
-        slice_num = int(math.floor(raw_size/slice_size))
+        slice_num = int(math.floor(raw_size/(slice_size*SampFreq)))
+        print('raw_size: {}, slice_num {}'.format(raw_size, slice_num))
         for i in range(0, slice_num):
-            out_data.append(slice_regard_channel(item, i*slice_size, (i+1)*slice_size))
+            out_data.append(slice_regard_channel(item, i*slice_size*SampFreq, (i+1)*slice_size*SampFreq))
                     
     print('out_size {}'.format(np.shape(out_data)))
     return out_data
@@ -247,14 +255,12 @@ def save_fine_tune_data(edf_dir, save_dir, read_option, win_size):
 
         seizure_data = options[read_option]([each], win_size)
         seizure_size += len(seizure_data)
-        print np.shape(seizure_data)
         np.save(os.path.join(
             save_dir, '{}_seizure_data.npy'.format(seizure_count)), seizure_data)
         seizure_count += 1
 
     if seizure_size < np.shape(no_seizure_data)[0]:
         no_seizure_data = random.sample(no_seizure_data, seizure_size)
-    print np.shape(no_seizure_data)
     np.save(os.path.join(
         save_dir, 'normal_data.npy'), no_seizure_data)
 
@@ -268,7 +274,8 @@ def main():
     args = get_parser()
     edfpath = args.folder
     save_dir = args.save_dir
-    save_fine_tune_data(edfpath, save_dir, 'slide', 3)
+   # edf_read_save(edfpath, save_dir, 'slice', 1)
+    save_fine_tune_data(edfpath, save_dir, 'slice', 1)
 
     
     

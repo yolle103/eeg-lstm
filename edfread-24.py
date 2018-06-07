@@ -284,8 +284,37 @@ def read_raw_data(edf_dir):
     np.save(os.path.join(save_dir, '{}_label.npy'.format(dir_name)), label)
     
 
+
+def slide_data(input_data, window_size):
+    # TODO code optimization!!
+
+    out_data = []
+    def slice_regard_channel(data, start, end):
+        out = []
+        for channel in data:
+            chunks = channel[start*SampFreq:end*SampFreq]
+            out.append(chunks)
+        return out
+
+    for item in input_data:
+        print('raw_size : {}'.format(np.shape(item)))
+        if len(np.shape(item)) == 1:
+            continue
+        raw_size = np.shape(item)[1]
+        slide_window_num = (raw_size - window_size*SampFreq)/SampFreq
+        slide_window_num = int(math.floor(slide_window_num))
+        print('raw_size: {}, window_num: {}'.format(raw_size, slide_window_num))
+        for i in range(slide_window_num):
+            start = i
+            end = i + window_size
+            out_data.append(slice_regard_channel(item, start, end))
+
+                    
+    print('out_size {}'.format(np.shape(out_data)))
+    return out_data
 def slice_data(input_data, slice_size):
     out_data = []
+    print('sliceing!')
     def slice_regard_channel(data, start, end):
         out = []
         for channel in data:
@@ -295,9 +324,10 @@ def slice_data(input_data, slice_size):
 
     for item in input_data:
         raw_size = np.shape(item)[1]
-        slice_num = int(math.floor(raw_size/slice_size))
+        slice_num = int(math.floor(raw_size/(slice_size*SampFreq)))
+        print('raw_size: {}, slice_num {}'.format(raw_size, slice_num))
         for i in range(0, slice_num):
-            out_data.append(slice_regard_channel(item, i*slice_size, (i+1)*slice_size))
+            out_data.append(slice_regard_channel(item, i*slice_size*SampFreq, (i+1)*slice_size*SampFreq))
                     
     print('out_size {}'.format(np.shape(out_data)))
     return out_data
@@ -349,14 +379,12 @@ def save_fine_tune_data(edf_dir, save_dir, read_option, win_size):
 
         seizure_data = options[read_option]([each], win_size)
         seizure_size += len(seizure_data)
-        print np.shape(seizure_data)
         np.save(os.path.join(
             save_dir, '{}_seizure_data.npy'.format(seizure_count)), seizure_data)
         seizure_count += 1
 
     if seizure_size < np.shape(no_seizure_data)[0]:
         no_seizure_data = random.sample(no_seizure_data, seizure_size)
-    print np.shape(no_seizure_data)
     np.save(os.path.join(
         save_dir, 'normal_data.npy'), no_seizure_data)
 
@@ -369,7 +397,9 @@ def main():
     args = get_parser()
     edfpath = args.folder
     save_dir = args.save_dir
-    edf_read_3s_slide_window(edfpath, save_dir)
+   # edf_read_save(edfpath, save_dir, 'slice', 1)
+    save_fine_tune_data(edfpath, save_dir, 'slice', 1)
+
     
     
 if __name__ == '__main__':

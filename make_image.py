@@ -11,7 +11,7 @@ def get_band_filter(data, st_feq, ed_feq):
     return: [channel, SampFreq] filterd at st_feq to ed_feq
     '''
     out_data = []
-    for i in xrange(0, ChannelNum):
+    for i in range(0, ChannelNum):
         channel_data = data[i]
         filterd_channel_data = band_filter.butter_bandpass_filter(
                 channel_data, st_feq, ed_feq, SampFreq)
@@ -44,21 +44,21 @@ def make_image_string(data, time_step):
     new_data = []
     for item in data:
         new_sample = []
-        for i in xrange(0, time_step):
+        for i in range(0, time_step):
             time_data = []
             for channel in item:
                 new_channel = channel[i*SampFreq:(i+1)*SampFreq]
                 time_data.append(new_channel)
             new_sample.append(time_data)
         new_data.append(new_sample)
-    print np.shape(new_data)
+    print(np.shape(new_data))
     # new data: [sample, timestep, channel, feature]
 
 
     count = 1
     for sample in new_data:
         image_sample = []
-        print 'process {}-th image', count
+        print('process {}-th image', count)
         count += 1
         for t_win in sample:
             image = make_single_image(t_win) 
