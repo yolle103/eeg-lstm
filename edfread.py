@@ -3,7 +3,8 @@
 #对原始的发作时期的患者的.edf格式文件进行读取，转换成.csv格式文件
 #并对一些多余的信道进行处理
 
-from __future__ import division
+from numpy.random import seed
+seed(2018)
 import pandas as pd
 import numpy as np
 np.set_printoptions(threshold=np.inf)
@@ -98,6 +99,34 @@ def read_summary(summary_path):
             i += 1
     return file_info
 
+def read_24_summary(summary_path):
+    file_info = []
+    with open(summary_path, 'r') as f:
+        content = f.readlines()
+    i = 0
+    while i < len(content):
+        if 'File Name' in content[i]:
+            info = {}
+            info['filename'] = content[i].split(': ')[1][:-1]
+            info['num_seizure'] = int(content[i+1].split(': ')[1])
+            if info['num_seizure'] > 0:
+                info['seizure'] = []
+                j = 0
+                while j < info['num_seizure']:
+                    seizure_start_time = int(content[i+2+j*2].split(': ')[1][:-8])
+                    seizure_end_time = int(content[i+3+j*2].split(': ')[1][:-8])
+                    info['seizure'].append((seizure_start_time, seizure_end_time))
+                    j += 1
+                i += 4
+            else:
+                i += 2
+            file_info.append(info)
+            
+        else:
+            i += 1
+    return file_info
+
+
 def read_raw_data(edf_dir):
     edf_file_list = []
     summary_file_path = ''
@@ -112,7 +141,10 @@ def read_raw_data(edf_dir):
     print('edf file num: {}'.format(len(edf_file_list)))
     print('summary path: {}'.format(summary_file_path))
     # read summary
-    file_info = read_summary(summary_file_path)
+    if 'chb24' in summary:
+        file_info = read_24_summary(summary_file_path)
+    else:
+        file_info = read_summary(summary_file_path)
     # file info is a list of dict containing each edf file's information
     # dict format: {'filename':, 'num_seizure':, 'seizure':[(st1, end1),(st2, end2)]}
 
@@ -176,7 +208,7 @@ def edf_read_save(edf_dir, save_dir, read_option, win_size):
     print('seizure data shape: {}'.format(np.shape(seizure_data)))
     print('no seizure data shape: {}'.format(np.shape(no_seizure_data)))
     label = [0]*np.shape(seizure_data)[0] + [1]*np.shape(seizure_data)[0]
-    # data format (sample, channel, feature) feature is 6s data with 256 SampFreq
+    # data format (sample, channel, feature)
     if not os.path.isdir(save_dir):
         os.mkdir(save_dir)
     data = no_seizure_data + seizure_data
@@ -185,16 +217,18 @@ def edf_read_save(edf_dir, save_dir, read_option, win_size):
     np.save(os.path.join(
         save_dir, '{}_label.npy'.format(dir_name)), label)
 
+def cut_regard_channel(data, start, end):
+    out = []
+    for channel in data:
+        chunks = channel[start:end]
+        out.append(chunks)
+    return out
+
     
 def slice_data(input_data, slice_size):
+    # slice the input data
     out_data = []
     print('sliceing!')
-    def slice_regard_channel(data, start, end):
-        out = []
-        for channel in data:
-            chunks = channel[start:end]
-            out.append(chunks)
-        return out
 
     for item in input_data:
         print(np.shape(item))
@@ -202,36 +236,26 @@ def slice_data(input_data, slice_size):
         slice_num = int(math.floor(raw_size/(slice_size*SampFreq)))
         print('raw_size: {}, slice_num {}'.format(raw_size, slice_num))
         for i in range(0, slice_num):
-            out_data.append(slice_regard_channel(item, i*slice_size*SampFreq, (i+1)*slice_size*SampFreq))
+            out_data.append(cut_regard_channel(item, i*slice_size*SampFreq, (i+1)*slice_size*SampFreq))
                     
     print('out_size {}'.format(np.shape(out_data)))
     return out_data
 
-def slide_data(input_data, window_size):
-    # TODO code optimization!!
 
+def slide_data(input_data, window_size, overlap):
     out_data = []
-    def slice_regard_channel(data, start, end):
-        out = []
-        for channel in data:
-            chunks = channel[start*SampFreq:end*SampFreq]
-            out.append(chunks)
-        return out
-
     for item in input_data:
         print('raw_size : {}'.format(np.shape(item)))
         if len(np.shape(item)) == 1:
             continue
         raw_size = np.shape(item)[1]
-        slide_window_num = (raw_size - window_size*SampFreq)/SampFreq
+        slide_window_num = (raw_size - window_size*SampFreq)/(SampFreq*overlap) + 1
         slide_window_num = int(math.floor(slide_window_num))
         print('raw_size: {}, window_num: {}'.format(raw_size, slide_window_num))
         for i in range(slide_window_num):
             start = i
             end = i + window_size
-            out_data.append(slice_regard_channel(item, start, end))
-
-                    
+            out_data.append(cut_regard_channel(item, start*SampFreq, end*SampFreq))
     print('out_size {}'.format(np.shape(out_data)))
     return out_data
 
@@ -246,12 +270,11 @@ def save_fine_tune_data(edf_dir, save_dir, read_option, win_size):
     if not os.path.isdir(save_dir):
         os.mkdir(save_dir)
 
-    # data format (sample, channel, feature) feature is 6s data with 256 SampFreq
     seizure_count = 0
     seizure_size = 0
 
     for each in seizure_raw_data:
-        # slide/slice each seizure_raw_data
+        # slide/slice each seizure_raw_data(each record)
 
         seizure_data = options[read_option]([each], win_size)
         seizure_size += len(seizure_data)
@@ -274,8 +297,8 @@ def main():
     args = get_parser()
     edfpath = args.folder
     save_dir = args.save_dir
-   # edf_read_save(edfpath, save_dir, 'slice', 1)
-    save_fine_tune_data(edfpath, save_dir, 'slice', 1)
+    edf_read_save(edfpath, save_dir, 'slice', 1)
+   #save_fine_tune_data(edfpath, save_dir, 'slice', 1)
 
     
     
