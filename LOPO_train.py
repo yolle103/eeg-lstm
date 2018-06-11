@@ -1,3 +1,8 @@
+from numpy.random import seed
+seed(2018)
+from tensorflow import set_random_seed
+set_random_seed(2019)
+
 import pickle as pk
 import numpy as np
 import os
@@ -53,6 +58,7 @@ def make_cnn_model(input_shape, num_classes):
     model.add(MaxPooling2D((1, 2), data_format='channels_first'))
     model.add(Dropout(0.2, seed=2018))
     model.add(Flatten())
+    model.add(Dense(64))
     model.add(Dense(num_classes, activation='softmax'))
     return model
 
