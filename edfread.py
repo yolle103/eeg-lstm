@@ -141,7 +141,7 @@ def read_raw_data(edf_dir):
     print('edf file num: {}'.format(len(edf_file_list)))
     print('summary path: {}'.format(summary_file_path))
     # read summary
-    if 'chb24' in summary:
+    if 'chb24' in summary_file_path:
         file_info = read_24_summary(summary_file_path)
     else:
         file_info = read_summary(summary_file_path)
@@ -242,7 +242,7 @@ def slice_data(input_data, slice_size):
     return out_data
 
 
-def slide_data(input_data, window_size, overlap):
+def slide_data(input_data, window_size, overlap=1):
     out_data = []
     for item in input_data:
         print('raw_size : {}'.format(np.shape(item)))
@@ -297,7 +297,7 @@ def main():
     args = get_parser()
     edfpath = args.folder
     save_dir = args.save_dir
-    edf_read_save(edfpath, save_dir, 'slice', 1)
+    edf_read_save(edfpath, save_dir, 'slide', 3)
    #save_fine_tune_data(edfpath, save_dir, 'slice', 1)
 
     
