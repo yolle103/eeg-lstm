@@ -188,6 +188,8 @@ def read_raw_data(edf_dir):
     print('seizure raw data shape {}'.format(np.shape(seizure_raw_data)))
     # extract enough none-seizure data according to seizure total time
     print('total seizure time: {}'.format(seizure_total_time))
+    
+    # seizure_raw_data和no_seizure_raw_data数据维度：[[[],[],[],...[]], [[],[],[],...[]], ..., [[],[],[],...[]]] 样本数*信道数*points
     return seizure_raw_data, no_seizure_raw_data
 
 def edf_read_save(edf_dir, save_dir, read_option, win_size):
@@ -231,13 +233,14 @@ def slice_data(input_data, slice_size):
     print('sliceing!')
 
     for item in input_data:
+        # channel*points
         print(np.shape(item))
         raw_size = np.shape(item)[1]
         slice_num = int(math.floor(raw_size/(slice_size*SampFreq)))
         print('raw_size: {}, slice_num {}'.format(raw_size, slice_num))
         for i in range(0, slice_num):
+            # out_data size: [[[], [], [], ...], [[], [], [], ...], ...]  (slice_num*sample) * channel * points             
             out_data.append(cut_regard_channel(item, i*slice_size*SampFreq, (i+1)*slice_size*SampFreq))
-                    
     print('out_size {}'.format(np.shape(out_data)))
     return out_data
 
