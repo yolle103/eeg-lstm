@@ -79,12 +79,12 @@ def main():
         # train the Dense layer
         for layer in model.layers:
             layer_config = layer.get_config()
-            print layer_config['name']
+            print(layer_config['name'])
             if not 'dense' in layer_config['name']:
                 layer.trainable = False
-        print model.summary()
-        print 'train_size: {}'.format(np.shape(train_data))
-        print 'val_size: {}'.format(np.shape(val_data))
+        print(model.summary())
+        print('train_size: {}'.format(np.shape(train_data)))
+        print('val_size: {}'.format(np.shape(val_data)))
         model.compile(
                 loss='categorical_crossentropy', 
                 optimizer = optimizers.Adam(lr=0.0001),
@@ -104,7 +104,7 @@ def main():
                 validation_data=(val_data, val_label), 
                 shuffle=True, 
                 initial_epoch=0, callbacks=[checkpoint, logger])
-        print history
+        print(history)
 
 
 if __name__ == '__main__':

@@ -30,7 +30,7 @@ def combine_data(data_dir, out_dir):
             if 'data' in file:
                 file_list.append(os.path.join(data_dir, file))
     data_combine, label_combine = combine(file_list)
-    print np.shape(data_combine), np.shape(label_combine)
+    print(np.shape(data_combine), np.shape(label_combine))
 
     np.save(
             os.path.join(out_dir, 'data.npy'), data_combine)
@@ -56,7 +56,7 @@ def generate_LOPO_data(data_dir, out_dir):
         data_dir = os.path.join(out_dir, basename)
         if not os.path.isdir(data_dir):
             os.mkdir(data_dir)
-        print 'generating LOPO data for {}'.format(basename)
+        print('generating LOPO data for {}'.format(basename))
         LOPO_list = [i for i in file_list if i != patient]
         data_name = '{}-data-train.npy'.format(basename)
         label_name = '{}-label-train.npy'.format(basename)
@@ -77,7 +77,7 @@ def generate_LOPO_data(data_dir, out_dir):
 
 def main():
     #combine_data('./data')
-    generate_LOPO_data('./image_data', './LOPO')
+    generate_LOPO_data('./image_slice_1_s', './LOPO_image_slice_1_s')
 
 if __name__ == '__main__':
     main()
