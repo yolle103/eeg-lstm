@@ -5,9 +5,12 @@ import datetime
 run_list = [6, 8, 12, 13, 14, 15]
 run_script = 'hyper_search_model.py'
 start_epoch = 0
-epoch = 20
+epoch = 50
 d = datetime.date.today()
 date_prefix = '{}_{}'.format(d.month, d.day)
+save_root = './training_{}'.format(date_prefix)
+if not os.path.exists(save_root):
+    os.mkdir(save_root)
 
 for item in run_list:
     folder = './LOPO_image_slide_3/chb{0:02}'.format(item)
