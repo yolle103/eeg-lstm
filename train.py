@@ -1,28 +1,107 @@
-import run_model
+import pickle as pk
+import numpy as np
 import os
+import keras
+from keras.layers import Dense, LSTM, GRU, Bidirectional, Input, Conv2D, MaxPooling2D, Flatten, TimeDistributed, Reshape
+from keras.layers import ELU, BatchNormalization, Dropout
+from keras.models import Model
+from keras import optimizers
 from keras.callbacks import ModelCheckpoint, CSVLogger
-from keras.models import load_model
 from keras.utils import to_categorical
+from keras.models import Sequential, load_model
+from keras.layers.noise import GaussianNoise
+from sklearn.utils import shuffle
+
+from sklearn.svm import SVC
+from sklearn.model_selection import StratifiedKFold
+from sklearn.feature_selection import RFECV
+import argparse
+import models
+SampFreq = 256
+ChannelNum = 22
+
+def get_parser():
+    parser = argparse.ArgumentParser(description='train multiple win LOPO jobs')
+    parser.add_argument('-f', '--folder', help='data floder')
+    parser.add_argument('-s', '--save_dir', help='save dir')
+    parser.add_argument('-se', '--start_epoch', help='start epoch')
+    parser.add_argument('-e', '--epoch', help='train epoch')
+    parser.add_argument('-c', '--ckpt_file', help='ckpt file')
+    parser.add_argument('-m', '--model', help='model name')
+    return parser.parse_args()
+
+def load_data(data, label):
+    t_data = np.load(open(data, 'rb')) 
+    t_label = np.load(open(label, 'rb'))
+    return t_data, t_label
+
+def dataset_preprocess(data, label):
+   # data shuffle
+   s_data, s_label = shuffle(data, label, random_state=2018)
+   return s_data, s_label
+
+
 def main():
-    x, y = run_model.load_data()
-    x, y = run_model.dataset_preprocess(x, y)
-    y = to_categorical(y)
-    model_path = './model.0019-0.61.hdf5'
-    model = load_model(model_path)
+    args = get_parser()
+    data_path = args.folder
+    save_dir = args.save_dir
+    start_epoch = int(args.start_epoch)
+    epoch = int(args.epoch)
+    ckpt_path = args.ckpt_file
+    model_name = args.model
+
+
+    model_options = {
+            'raw_cnn':models.raw_cnn,
+            'shallowconv': models.shallow_conv_net,
+            'deepconv': models.deep_conv_net,
+            'orig_EEG': models.origin_EEG_net,
+            'hyper_EEG': models.hyper_tune_EEGnet,
+            'swwae': models.SWWAE_model}
+
+    train_data, train_label = load_data(
+            os.path.join(
+                data_path, '{}-data-train.npy'.format(data_path[-5:])), 
+            os.path.join(
+                data_path, '{}-label-train.npy'.format(data_path[-5:])))
+
+    val_data, val_label = load_data(
+            os.path.join(
+                data_path, '{}-data-val.npy'.format(data_path[-5:])), 
+            os.path.join(
+                data_path, '{}-label-val.npy'.format(data_path[-5:])))
+
+    print('train_size:', np.shape(train_data))
+    print('val_size:', np.shape(val_data))
+    data_shape = np.shape(train_data[0])
+
+    train_label = to_categorical(train_label)
+    val_label = to_categorical(val_label)
+    train_label = np.asarray(train_label)
+    val_label = np.asarray(val_label)
+    if not ckpt_path:
+        model = model_options[model_name](2, 22, 256)
+        model.compile(loss='categorical_crossentropy',
+            optimizer = optimizers.Adagrad(), 
+            metrics = ['accuracy'])
+        print model.summary()
+    else:
+        model = load_model(ckpt_path)
+
+    print(model.summary())
+    if not os.path.isdir(save_dir):
+        os.mkdir(save_dir)
 
     checkpoint = ModelCheckpoint(
-            './model.{epoch:04d}-{val_loss:.2f}.hdf5',monitor='loss',
-            verbose=1, save_best_only=True, mode='min')
+        os.path.join(save_dir, 'model.{epoch:04d}-{val_loss:.2f}.hdf5'))
 
-    logger = CSVLogger(os.path.join(".", "training-20.log"))
-    # fit the model
+    logger = CSVLogger(os.path.join(save_dir, "training-{}-{}.log.csv".format(start_epoch, epoch)))
 
-    callbacks_list = [checkpoint]
     model.fit(
-            x, y, batch_size=32, 
-            epochs=50, verbose=1, 
-            validation_split=0.1, shuffle=True, 
-            initial_epoch=20, callbacks=[checkpoint, logger])
+        train_data, train_label, batch_size=32, 
+        epochs=epoch, verbose=1, 
+        validation_data=(val_data, val_label), shuffle=True, 
+        initial_epoch=start_epoch, callbacks=[checkpoint, logger])
 
 if __name__ == '__main__':
     main()
