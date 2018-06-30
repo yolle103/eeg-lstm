@@ -1,22 +1,24 @@
-import pickle as pk
-import numpy as np
+import argparse
 import os
+import pickle as pk
+
 import keras
-from keras.layers import Dense, LSTM, GRU, Bidirectional, Input, Conv2D, MaxPooling2D, Flatten, TimeDistributed, Reshape
-from keras.layers import ELU, BatchNormalization, Dropout
-from keras.models import Model
+import numpy as np
 from keras import optimizers
-from keras.callbacks import ModelCheckpoint, CSVLogger
-from keras.utils import to_categorical
-from keras.models import Sequential, load_model
+from keras.callbacks import CSVLogger, ModelCheckpoint
+from keras.layers import (ELU, GRU, LSTM, BatchNormalization, Bidirectional,
+                          Conv2D, Dense, Dropout, Flatten, Input, MaxPooling2D,
+                          Reshape, TimeDistributed)
 from keras.layers.noise import GaussianNoise
+from keras.models import Model, Sequential, load_model
+from keras.utils import to_categorical
+from sklearn.feature_selection import RFECV
+from sklearn.model_selection import StratifiedKFold
+from sklearn.svm import SVC
 from sklearn.utils import shuffle
 
-from sklearn.svm import SVC
-from sklearn.model_selection import StratifiedKFold
-from sklearn.feature_selection import RFECV
-import argparse
 import models
+
 SampFreq = 256
 ChannelNum = 22
 

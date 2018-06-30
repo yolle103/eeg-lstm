@@ -1,27 +1,25 @@
-import pickle as pk
-import numpy as np
 import os
-import keras
-from keras.layers import Dense, LSTM, GRU, Bidirectional, Input, Conv2D, MaxPooling2D, Flatten, TimeDistributed, Reshape
-from keras.layers import ELU, BatchNormalization, Dropout
-from keras.models import Model
-from keras import optimizers
-from keras.callbacks import ModelCheckpoint, CSVLogger
-from keras.utils import to_categorical
-from keras.models import Sequential, load_model
-from sklearn.feature_selection import RFECV
+import pickle as pk
 
-from keras.layers.core import Dense, Activation, Permute, Dropout
-from keras.layers.convolutional import Conv2D, MaxPooling2D, AveragePooling2D
-from keras.layers.convolutional import SeparableConv2D
-from keras.layers.normalization import BatchNormalization
-from keras.layers import SpatialDropout2D
-from keras.regularizers import l1_l2
-from keras.layers import Input, Flatten
-from keras.applications.mobilenet import DepthwiseConv2D
-from keras.initializers import he_uniform, he_normal, glorot_normal
+import keras
 import keras.backend as K
+import numpy as np
+from keras import optimizers
+from keras.applications.mobilenet import DepthwiseConv2D
+from keras.callbacks import CSVLogger, ModelCheckpoint
 from keras.constraints import max_norm
+from keras.initializers import glorot_normal, he_normal, he_uniform
+from keras.layers import (ELU, GRU, LSTM, BatchNormalization, Bidirectional,
+                          Conv2D, Dense, Dropout, Flatten, Input, MaxPooling2D,
+                          Reshape, SpatialDropout2D, TimeDistributed)
+from keras.layers.convolutional import (AveragePooling2D, Conv2D, MaxPooling2D,
+                                        SeparableConv2D)
+from keras.layers.core import Activation, Dense, Dropout, Permute
+from keras.layers.normalization import BatchNormalization
+from keras.models import Model, Sequential, load_model
+from keras.regularizers import l1_l2
+from keras.utils import to_categorical
+from sklearn.feature_selection import RFECV
 
 
 def raw_cnn(num_classes, chans=22, samples=768):
