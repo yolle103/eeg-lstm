@@ -82,11 +82,10 @@ def main():
     train_label = np.asarray(train_label)
     val_label = np.asarray(val_label)
     if not ckpt_path:
-        model = model_options[model_name](2, 22, 256)
+        model = model_options[model_name](2, 22, 768)
         model.compile(loss='categorical_crossentropy',
             optimizer = optimizers.Adagrad(), 
             metrics = ['accuracy'])
-        print model.summary()
     else:
         model = load_model(ckpt_path)
 
