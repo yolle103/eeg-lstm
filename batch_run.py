@@ -1,8 +1,12 @@
+
+'''
+为每个患者在每个网络（shallowconv、deepconv）上跑50个epoch 得到val结果
+'''
 import os
 import subprocess
 import datetime
 
-run_list = [6, 8, 12, 13, 14, 15]
+#run_list = [6, 8, 12, 13, 14, 15]
 run_list = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,17,18,19,20,21,22,23,24]
 print(run_list)
 run_script = 'eeg-lstm/train.py'

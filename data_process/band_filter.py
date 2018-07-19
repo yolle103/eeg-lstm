@@ -66,9 +66,4 @@ def multiprocess(path, savepath):
         
     
 if __name__ == '__main__':
-    onset_path = r'E:\Optimize_eeg\data\origin_onset_data'
-    onset_savepath = r'E:\Optimize_eeg\data\band_filter_onset_data'
-#    filterX_onset(onset_path, onset_savepath)
-    inter_path = r'G:\chbmit_analysis\handle\channel_handled_csv\inter-itcal'
-    inter_savepath = r'E:\Optimize_eeg\data\band_filter_inter_itcal_1800s'
-#    multiprocess(inter_path, inter_savepath)
+    pass

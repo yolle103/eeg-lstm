@@ -11,19 +11,22 @@ def load_data(x, y):
     label = np.load(y)
     return data, label
 
+#data.shape:[[[], [], [], ...], [[], [], [], ...], ...]  sample * channel * points 
 def gen_image(data):
     image_data = []
     count = 0
     for item in data:
+        #image.shape: [[[], [],...], [[], [],...], [[], [],...]] [3, channel, points]
         image = make_image.make_single_image(item)
         image_data.append(image)
         print('generating {} image'.format(count))
         count += 1
+    #image_data.shape: [[[[], [],...], [[], [],...], [[], [],...]], [[[], [],...], [[], [],...], [[], [],...]], ...] [sample, 3, channel, points]
     return image_data
 
 def main():
-    origindata_dir = './raw_slice_1_s'
-    out_dir = './image_slice_1_s'
+    origindata_dir = './raw_slide_3'
+    out_dir = './image_slide_3'
 #
 #    for dirpath, dirnames, filenames in os.walk(origindata_dir):
 #        structure = os.path.join(out_dir, dirpath[len(origindata_dir):][1:])
@@ -45,7 +48,6 @@ def main():
 #                np.save(os.path.join(out_dir_name, file), image_data)
 #
     file_list = []
-    image_dict = {}
     for file in os.listdir(origindata_dir):
             if 'data' in file:
                 file_list.append(os.path.join(origindata_dir, file))

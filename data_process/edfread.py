@@ -5,16 +5,11 @@
 
 from numpy.random import seed
 seed(2018)
-import pandas as pd
 import numpy as np
 np.set_printoptions(threshold=np.inf)
 import os
-import xlrd
 import pyedflib
 import argparse
-import datetime
-from datetime import timedelta
-import time
 import math
 import random
 
@@ -28,6 +23,7 @@ def get_parser():
     return parser.parse_args()
 
 
+#read .edf file and return data shape:[[],[],...,[]] channel*((end_time-start_time)*SampFreq)
 def read_edf(file_path, start_time=None, end_time=None):
     f = pyedflib.EdfReader(file_path)
     channel_list = channel_handle(os.path.basename(file_path))
@@ -131,7 +127,6 @@ def read_raw_data(edf_dir):
     edf_file_list = []
     summary_file_path = ''
     # get all edf file path in folder
-    dir_name = os.path.basename(edf_dir)
     for file in os.listdir(edf_dir):
             if file.endswith(".edf"):
                 edf_file_list.append(os.path.join(edf_dir, file))
@@ -202,14 +197,16 @@ def edf_read_save(edf_dir, save_dir, read_option, win_size):
     no_seizure_data = options[read_option](
             no_seizure_raw_data, win_size)
 
+    #seizure_data shape:[[[], [], [], ...], [[], [], [], ...], ...]  (slice_num*sample) * channel * points
     print('seizure data shape: {}'.format(np.shape(seizure_data)))
     print('no seizure data shape: {}'.format(np.shape(no_seizure_data)))
     if np.shape(seizure_data)[0] < np.shape(no_seizure_data)[0]:
+        #使正负样本数量均衡
         no_seizure_data = random.sample(no_seizure_data, np.shape(seizure_data)[0])
 
     print('seizure data shape: {}'.format(np.shape(seizure_data)))
     print('no seizure data shape: {}'.format(np.shape(no_seizure_data)))
-    label = [0]*np.shape(seizure_data)[0] + [1]*np.shape(seizure_data)[0]
+    label = [0]*np.shape(seizure_data)[0] + [1]*np.shape(no_seizure_data)[0]
     # data format (sample, channel, feature)
     if not os.path.isdir(save_dir):
         os.mkdir(save_dir)
@@ -245,14 +242,14 @@ def slice_data(input_data, slice_size):
     return out_data
 
 
-def slide_data(input_data, window_size, overlap=1):
+def slide_data(input_data, window_size, slide_step=1):
     out_data = []
     for item in input_data:
         print('raw_size : {}'.format(np.shape(item)))
         if len(np.shape(item)) == 1:
             continue
         raw_size = np.shape(item)[1]
-        slide_window_num = (raw_size - window_size*SampFreq)/(SampFreq*overlap) + 1
+        slide_window_num = (raw_size - window_size*SampFreq)/(SampFreq*slide_step) + 1
         slide_window_num = int(math.floor(slide_window_num))
         print('raw_size: {}, window_num: {}'.format(raw_size, slide_window_num))
         for i in range(slide_window_num):
@@ -262,6 +259,7 @@ def slide_data(input_data, window_size, overlap=1):
     print('out_size {}'.format(np.shape(out_data)))
     return out_data
 
+#将患者的每次发病单独保存成一个 *_seizure_data.npy，不发作的合起来保存成一个normal_data.npy
 def save_fine_tune_data(edf_dir, save_dir, read_option, win_size):
     dir_name = os.path.basename(edf_dir)
     seizure_raw_data, no_seizure_raw_data = read_raw_data(edf_dir)
@@ -298,10 +296,22 @@ def test():
 
 def main():
     args = get_parser()
+    #/data/home/yangsh/chbmit/rawData/chb*
     edfpath = args.folder
+    
+    #save_dir:/data/home/yangsh/EEG_CHBMIT_NN/raw_slide_3
     save_dir = args.save_dir
     edf_read_save(edfpath, save_dir, 'slide', 3)
-   #save_fine_tune_data(edfpath, save_dir, 'slice', 1)
+    
+#    #save_dir:/data/home/yangsh/EEG_CHBMIT_NN/raw_slice_1_s
+#    save_dir = args.save_dir
+#    edf_read_save(edfpath, save_dir, 'slice', 1)
+    
+#   # save_dir:/data/home/yangsh/EEG_CHBMIT_NN/raw_fine_tune_slice
+    #save_fine_tune_data(edfpath, save_dir, 'slice', 1)
+    
+#   # save_dir:/data/home/yangsh/EEG_CHBMIT_NN/raw_fine_tune_slide
+    #save_fine_tune_data(edfpath, save_dir, 'slide', 3)
 
     
     

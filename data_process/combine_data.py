@@ -17,6 +17,7 @@ def combine(file_list):
         label = np.load(label_file)
         data_combine.extend(data)
         label_combine.extend(label)
+    #data_combine.shape: [sample, 3, channel, points]
     return data_combine, label_combine
 
 
@@ -76,7 +77,7 @@ def generate_LOPO_data(data_dir, out_dir):
 
 
 def main():
-    #combine_data('./data')
+    #combine_data('./raw_slide_3')
     generate_LOPO_data('./image_slice_1_s', './LOPO_image_slice_1_s')
 
 if __name__ == '__main__':

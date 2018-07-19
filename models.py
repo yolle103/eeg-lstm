@@ -24,6 +24,7 @@ from sklearn.feature_selection import RFECV
 
 def raw_cnn(num_classes, chans=22, samples=768):
     '''
+    序贯模型
     a simple cnn with ELU as activation & MaxPooling
     '''
     data_shape = (3, chans, samples)
@@ -44,7 +45,9 @@ def raw_cnn(num_classes, chans=22, samples=768):
     return model
 
 def shallow_conv_net(num_classes, chans = 22, samples = 768):
-    """ Keras implementation of the Shallow Convolutional Network as described
+    """ 
+    函数式模型
+    Keras implementation of the Shallow Convolutional Network as described
     in Schirrmeister et. al. (2017), Human Brain Mapping.
     """
 
